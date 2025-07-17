@@ -196,6 +196,11 @@ pct_returned_items = (Item_refunded_count / total_items_ordered) * 100
 # --------------------------
 # 📊 KPI DASHBOARD (OVERVIEW)
 # --------------------------
+# --------------------------
+# 📊 KPI DASHBOARD (OVERVIEW)
+# --------------------------
+section = st.session_state.get("selected_section", "Executive KPI Dashboard")
+
 if section == "Executive KPI Dashboard":
     st.markdown("""
     <h2 style='color:#333'>📊 Executive KPI Dashboard</h2>
