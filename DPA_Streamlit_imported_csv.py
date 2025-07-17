@@ -94,9 +94,11 @@ if "logged_in" in st.session_state and not st.session_state.logged_in:
 import os  # Make sure this is at the top of your file
 
 # 📁 CSV FILE LOADING FROM GITHUB-CLONED RELATIVE PATH
+import os
+
 def load_data():
     try:
-        data_path = "data"  # ✅ Relative path — works on Render and local
+        data_path = os.path.join(os.getcwd(), "data")  # ✅ Relative path for Render
         orders = pd.read_csv(os.path.join(data_path, "orders.csv"))
         order_items = pd.read_csv(os.path.join(data_path, "order_items.csv"))
         order_item_refunds = pd.read_csv(os.path.join(data_path, "order_item_refunds.csv"))
@@ -108,6 +110,13 @@ def load_data():
     except Exception as e:
         st.error(f"❌ Failed to load CSV files: {e}")
         return [None]*6
+
+orders, order_items, order_item_refunds, products, website_pageviews, website_sessions = load_data()
+
+if any(df is None or df.empty for df in [orders, order_items, order_item_refunds, products, website_pageviews, website_sessions]):
+    st.error("❌ One or more required CSV files are missing or empty.")
+    st.stop()
+
 
 
 # --------------------------
