@@ -1,6 +1,3 @@
-# streamlit_app.py
-# streamlit_app.py
-
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -55,43 +52,49 @@ sns.set(style="whitegrid")
 # --------------------------
 # 🎛️ SIDEBAR NAVIGATION
 # --------------------------
-# Sidebar
-st.sidebar.title("Navigation")
+if st.session_state.get("logged_in", False):
+    st.sidebar.title("Navigation")
 
-# Show logged-in user
-if st.session_state.get("user"):
-    st.sidebar.markdown(f"👤 Logged in as: **{st.session_state.user.title()}**")
+    # Show logged-in user
+    if st.session_state.get("user"):
+        st.sidebar.markdown(f"👤 Logged in as: **{st.session_state.user.title()}**")
 
-# Navigation options
-section = st.sidebar.radio("Go to", [
-    "Executive KPI Dashboard",  # renamed from Overview
-    "Website Analytics",
-    "Product Analytics",
-    "Investor Analytics",
-    "Marketing Analytics",
-    "Customer Insights",
-    "Behavioral Segmentation",
-    "Campaign Performance",
-    "Cohort Analysis",
-    "RFM Segmentation",
-    "Session Funnel",
-    "Conversion Funnel"
-])
+    # Dashboard options
+    dashboard_options = [
+        "Executive KPI Dashboard",
+        "Website Analytics",
+        "Product Analytics",
+        "Investor Analytics",
+        "Marketing Analytics",
+        "Customer Insights",
+        "Behavioral Segmentation",
+        "Campaign Performance",
+        "Cohort Analysis",
+        "RFM Segmentation",
+        "Session Funnel",
+        "Conversion Funnel"
+    ]
 
+    # Maintain selected section using session state
+    if "selected_section" not in st.session_state:
+        st.session_state.selected_section = "Executive KPI Dashboard"
 
+    selected_section = st.sidebar.radio("Go to", dashboard_options, index=dashboard_options.index(st.session_state.selected_section))
+    st.session_state.selected_section = selected_section
 
-# Logout button
-if st.sidebar.button("🚪 Logout"):
-    st.session_state.logged_in = False
-    st.session_state.user = None
-    st.rerun()
+    # Logout button
+    if st.sidebar.button("🚪 Logout"):
+        st.session_state.logged_in = False
+        st.session_state.user = None
+        st.session_state.selected_section = "Executive KPI Dashboard"
+        st.rerun()
 
+else:
+    st.sidebar.title("🔐 Please log in")
 
-if "logged_in" in st.session_state and not st.session_state.logged_in:
-    st.success("Successfully logged out.")
 
 # --------------------------
-import os  # Make sure this is at the top of your file
+
 
 # 📁 CSV FILE LOADING FROM GITHUB-CLONED RELATIVE PATH
 import os
