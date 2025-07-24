@@ -8,6 +8,23 @@ import pyodbc
 import os
 from hashlib import sha256  # 🔒 For secure login
 
+# --------------------------------------------
+# 📌 Define the custom_kpi() layout function
+# --------------------------------------------
+def custom_kpi(label, value, help_text=None, column=None):
+    """
+    Renders a KPI-style metric box with optional help tooltip and custom column layout.
+    """
+    target = column if column else st
+    with target.container():
+        if help_text:
+            target.markdown(f"**{label}** ℹ️")
+            target.caption(help_text)
+        else:
+            target.markdown(f"**{label}**")
+        target.markdown(f"<h3 style='color:#4CAF50'>{value}</h3>", unsafe_allow_html=True)
+
+
 # --------------------------
 # 🔐 USER AUTHENTICATION
 # --------------------------
