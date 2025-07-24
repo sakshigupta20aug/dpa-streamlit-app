@@ -130,135 +130,232 @@ df_filtered['created_at'] = pd.to_datetime(df_filtered['created_at'])
 df_filtered['year'] = df_filtered['created_at'].dt.year
 df_filtered['quarter'] = df_filtered['created_at'].dt.quarter
 
-# --------------------------
-# 📊 KPI CALCULATIONS (before Overview)
-# --------------------------
+# Convert 'created_at' columns to datetime
+orders['created_at'] = pd.to_datetime(orders['created_at'])
+order_items['created_at'] = pd.to_datetime(order_items['created_at'])
+order_item_refunds['created_at'] = pd.to_datetime(order_item_refunds['created_at'])
+products['created_at'] = pd.to_datetime(products['created_at'])
+website_sessions['created_at'] = pd.to_datetime(website_sessions['created_at'])
+website_pageviews['created_at'] = pd.to_datetime(website_pageviews['created_at'])
 
-# Revenue & Cost
+# Date filter (if you're using date inputs)
+
+if "start_date" not in st.session_state or "end_date" not in st.session_state:
+    min_date = orders["created_at"].min()
+    max_date = orders["created_at"].max()
+    st.session_state.start_date = min_date
+    st.session_state.end_date = max_date
+
+# Optional date input for user selection
+st.sidebar.markdown("## 📅 Date Range Filter")
+st.session_state.start_date = st.sidebar.date_input("Start Date", st.session_state.start_date)
+st.session_state.end_date = st.sidebar.date_input("End Date", st.session_state.end_date)
+
+start_date = pd.to_datetime(st.session_state.start_date)
+end_date = pd.to_datetime(st.session_state.end_date)
+
+# Filtered DataFrames
+df_order_filtered = orders[(orders['created_at'] >= start_date) & (orders['created_at'] <= end_date)]
+df_items_filtered = order_items[(order_items['created_at'] >= start_date) & (order_items['created_at'] <= end_date)]
+df_refund_filtered = order_item_refunds[(order_item_refunds['created_at'] >= start_date) & (order_item_refunds['created_at'] <= end_date)]
+df_products_filtered = products.copy()
+df_filtered = website_sessions[(website_sessions['created_at'] >= start_date) & (website_sessions['created_at'] <= end_date)]
+df_website_pageviews = website_pageviews[(website_pageviews['created_at'] >= start_date) & (website_pageviews['created_at'] <= end_date)]
+
+# --- KPI CALCULATIONS ---
+
+
+
+# ✅ Base metrics (use unfiltered unless necessary)
+total_orders = orders['order_id'].nunique()
+total_sessions = website_sessions['website_session_id'].nunique()
 Total_Revenue = orders['price_usd'].sum()
-total_cost = orders['cogs_usd'].sum()
-
-# ✅ Safe Refund Calculation using order_id join (if available)
-if 'order_id' in order_items.columns:
-    refunds_joined = order_item_refunds.merge(order_items[['order_item_id', 'order_id']], on='order_item_id', how='left')
-    if 'order_id' in refunds_joined.columns:
-        refunded_order_ids = refunds_joined['order_id'].dropna().unique()
-        Total_Refund = orders[orders['order_id'].isin(refunded_order_ids)]['price_usd'].sum()
-    else:
-        Total_Refund = 0
-else:
-    Total_Refund = 0
-
-# 💰 Final Profit (Revenue - Refund - Cost)
-profit = Total_Revenue - Total_Refund - total_cost
-
-
-
-
-# Other Metrics
-total_orders = len(orders)
-total_sessions = len(website_sessions)
 Total_buyers = orders['user_id'].nunique()
 
+# ✅ Net Revenue = All revenue - refunds
+Net_Revenue = order_items['price_usd'].sum() - order_item_refunds['refund_amount_usd'].sum()
 
-# Conversion Rate & Bounce
-Conversion_Rate = (orders['website_session_id'].nunique() / website_sessions['website_session_id'].nunique()) * 100
-# bounce_rate = (website_sessions['is_bounced'].sum() / len(website_sessions)) * 100
+# ✅ Total cost = all item COGS
+total_cost = order_items['cogs_usd'].sum()
 
-# Buyer metrics
-buyers = orders.groupby('user_id').size()
-one_time_buyers = (buyers == 1).sum()
-returning_buyers = (buyers > 1).sum()
-pct_returning_buyers = returning_buyers / buyers.shape[0] * 100
-pct_one_time_buyers = one_time_buyers / buyers.shape[0] * 100
-Avg_revenue_per_buyer = Total_Revenue / buyers.shape[0]
-Avg_revenue_per_order = Total_Revenue / total_orders
-avg_profit_per_buyer = profit / buyers.shape[0]
+# ✅ Net cost = only COGS from non-refunded items
+# Filtered non-refunded items
+non_refunded_items = order_items[~order_items['order_item_id'].isin(order_item_refunds['order_item_id'])]
 
-# Items per order
-items_per_order = order_items.groupby('order_id')['order_item_id'].count()
-avg_item_per_order = items_per_order.mean()
+# Net Revenue (excluding refunded)
+Net_Revenue = non_refunded_items['price_usd'].sum()
 
-# User behavior
-user_sessions = website_sessions.groupby('user_id')['website_session_id'].count()
-one_time_users = (user_sessions == 1).sum()
-returning_users = (user_sessions > 1).sum()
-pct_returning_users = returning_users / user_sessions.shape[0] * 100
-pct_one_time_users = one_time_users / user_sessions.shape[0] * 100
-avg_sessions_per_user = user_sessions.mean()
+# Net Cost (excluding refunded)
+Net_cost = non_refunded_items['cogs_usd'].sum()
 
-# Refund metrics
-Item_refunded_count = len(order_item_refunds)
-total_items_ordered = len(order_items)
-pct_returned_items = (Item_refunded_count / total_items_ordered) * 100
- # Total_Refund = refunded_amount
+# Profit
+profit = Net_Revenue - total_cost
 
-# --------------------------
-# 📊 KPI DASHBOARD (OVERVIEW)
-# --------------------------
+
+
+
+
+
+# ✅ Total Items Sold 
+Total_items = order_items.shape[0]  # All items, regardless of refund
+
+
+# ✅ Bounce Rate (use unfiltered sessions, assuming 'is_bounce' exists and is 0/1)
+Bounce_rate = website_sessions['is_bounce'].mean() * 100 if 'is_bounce' in website_sessions else 0
+
+# ✅ Total Products
+Total_Products = products['product_id'].nunique()
+
+# ✅ Conversion Rate
+Conversion_Rate = (total_orders / total_sessions) * 100 if total_sessions else 0
+
+# ✅ Bounce Rate Handling
+
+pageviews_per_session = website_pageviews.groupby('website_session_id').size()
+single_page_sessions = pageviews_per_session[pageviews_per_session == 1].count()
+total_sessions = website_sessions['website_session_id'].nunique()
+bounce_rate = (single_page_sessions / total_sessions) * 100 if total_sessions else 0
+
+
+# ✅ Averages
+Avg_revenue_per_order = Total_Revenue / total_orders if total_orders else 0
+Avg_revenue_per_buyer = Total_Revenue / Total_buyers if Total_buyers else 0
+avg_profit_per_buyer = profit / Total_buyers if Total_buyers else 0
+avg_item_per_order = Total_items / total_orders if total_orders else 0
+
+# ✅ Refund Metrics
+Total_Refund = order_item_refunds["refund_amount_usd"].sum()
+Item_refunded_count = order_item_refunds['order_item_refund_id'].count()
+
+# Total items sold before filtering refunds
+total_items_sold_all = order_items.shape[0]
+
+# Correct % Returned Items
+pct_returned_items = (Item_refunded_count / total_items_sold_all) * 100
+
+
+# ✅ One-time & Returning Buyers
+buyers_by_order_count = orders.groupby('user_id')['order_id'].nunique()
+one_time_buyers = buyers_by_order_count[buyers_by_order_count == 1].count()
+returning_buyers = buyers_by_order_count[buyers_by_order_count > 1].count()
+pct_one_time_buyers = (one_time_buyers / Total_buyers) * 100
+pct_returning_buyers = (returning_buyers / Total_buyers) * 100
+
+# ✅ User Sessions & Behavior
+user_session_counts = website_sessions.groupby('user_id')['website_session_id'].nunique()
+one_time_users = user_session_counts[user_session_counts == 1].count()
+returning_users = user_session_counts[user_session_counts > 1].count()
+avg_sessions_per_user = user_session_counts.mean()
+pct_one_time_users = (one_time_users / user_session_counts.count()) * 100
+pct_returning_users = (returning_users / user_session_counts.count()) * 100
+
+# ✅ Days Between 1st & 2nd Purchase
+orders_sorted = orders.sort_values(['user_id', 'created_at'])
+first_two_orders = orders_sorted.groupby('user_id').head(2).copy()
+first_two_orders['order_rank'] = first_two_orders.groupby('user_id').cumcount() + 1
+pivot_orders = first_two_orders.pivot(index='user_id', columns='order_rank', values='created_at').dropna()
+pivot_orders.columns = ['first_order', 'second_order']
+pivot_orders['days_between'] = (pivot_orders['second_order'] - pivot_orders['first_order']).dt.days
+avg_gap = pivot_orders['days_between'].mean()
+
 # --------------------------
 # 📊 KPI DASHBOARD (OVERVIEW)
 # --------------------------
 section = st.session_state.get("selected_section", "Executive KPI Dashboard")
 
 if section == "Executive KPI Dashboard":
-    st.markdown("""
-    <h2 style='color:#333'>📊 Executive KPI Dashboard</h2>
-    <p style='font-size:16px;'>Track revenue, customer behavior, and performance insights across the funnel.</p>
-    """, unsafe_allow_html=True)
 
-    def custom_kpi(label, value):
-        st.markdown(f"<div style='background-color:#f0f2f6;padding:12px 16px;border-radius:12px;text-align:center;margin-bottom:10px;'>"
-                    f"<h5 style='color:#666'>{label}</h5>"
-                    f"<h2 style='color:#0072C6;margin:0'>{value}</h2></div>", unsafe_allow_html=True)
+        # Section 1: Core Metrics
+    st.markdown("### 🔢 Core Metrics")
+    row1_col1, row1_col2, row1_col3 = st.columns(3)
+    with row1_col1:
+        custom_kpi("🔢 Total Orders", f"{total_orders:,}")
+    with row1_col2:
+        custom_kpi("🌐 Total Sessions", f"{total_sessions/1_000:,.0f}K")
+    with row1_col3:
+        custom_kpi("📈 Total Profit", f"${profit / 1_000_000:,.2f}M")
 
-    # Core Metrics
-    st.subheader("🔢 Core Metrics")
-    col1, col2, col3 = st.columns(3)
-    with col1: custom_kpi("🛒 Orders", f"{total_orders:,}")
-    with col2: custom_kpi("🌍 Sessions", f"{total_sessions/1_000_000:,.2f}M")
-    with col3: custom_kpi("👤 Buyers", f"{Total_buyers:,}")
+    row2_col1, row2_col2, row2_col3 = st.columns(3)
+    with row2_col1:
+        custom_kpi("💰 Total Revenue", f"${Total_Revenue / 1_000_000:,.2f}M")
+    with row2_col2:
+        custom_kpi("💸 Net Revenue", f"${Net_Revenue / 1_000_000:,.2f}M")
+    with row2_col3:
+        custom_kpi("📉 Total Cost (COGS)", f"${total_cost / 1_000:,.2f}K")
 
-    col4, col5, col6 = st.columns(3)
-    with col4: custom_kpi("💵 Revenue", f"${Total_Revenue / 1_000_000:,.2f}M")
-    with col5: custom_kpi("📉 COGS", f"${total_cost / 1_000_000:,.2f}M")
-    with col6: custom_kpi("💰 Profit", f"${profit / 1_000_000:,.2f}M")
+    row3_col1, row3_col2, row3_col3 = st.columns(3)
+    with row3_col1:
+        custom_kpi("💸 Net Cost", f"${Net_cost/1000:,.2f}K")
+    with row3_col2:
+        custom_kpi("⚡ Conversion Rate", f"{Conversion_Rate:.2f}%")
+    with row3_col3:
+        custom_kpi("🚪 Bounce Rate", f"{bounce_rate:.2f}%")
 
-    col7, col8, col9 = st.columns(3)
-    with col7: custom_kpi("📈 Conversion", f"{Conversion_Rate:.2f}%")
-    with col8: custom_kpi("📦 Total Orders", f"{total_orders:,}")
-    # with col9: custom_kpi("🧾 Net Revenue", f"${Net_Revenue / 1_000_000:,.2f}M")
+    row10_col1, row10_col2, row10_col3 = st.columns(3)
+    with row10_col1:
+        custom_kpi("📦 Total Products", f"{Total_Products}")
+    with row10_col2:
+        custom_kpi("🛒 Total Items", f"{Total_items:,}")
+    with row10_col3:
+        custom_kpi("👥 Total Buyers", f"{Total_buyers:,}")
 
-    # Buyer Metrics
-    st.subheader("🧑‍💼 Buyer Insights")
-    col10, col11, col12 = st.columns(3)
-    with col10: custom_kpi("💳 Revenue/Buyer", f"${Avg_revenue_per_buyer:,.2f}")
-    with col11: custom_kpi("📦 Revenue/Order", f"${Avg_revenue_per_order:,.2f}")
-    with col12: custom_kpi("💹 Profit/Buyer", f"${avg_profit_per_buyer:,.2f}")
+    # Section 2: Buyer Insights
+    st.divider()
+    st.markdown("### 🧑‍💼 Buyer Behavior")
 
-    col13, col14, col15 = st.columns(3)
-    with col13: custom_kpi("🧾 One-time Buyers", f"{one_time_buyers:,}")
-    with col14: custom_kpi("🔁 Repeat Buyers", f"{returning_buyers:,}")
-    with col15: custom_kpi("% Repeat", f"{pct_returning_buyers:.2f}%")
+    row4_col1, row4_col2, row4_col3 = st.columns(3)
+    with row4_col1:
+        custom_kpi("💳 Avg Revenue/Buyer", f"${Avg_revenue_per_buyer:,.2f}")
+    with row4_col2:
+        custom_kpi("💹 Avg Profit/Buyer", f"${avg_profit_per_buyer:,.2f}")
+    with row4_col3:
+        custom_kpi("🛍️ Avg Revenue/Order", f"${Avg_revenue_per_order:,.2f}")
 
-    # User Metrics
-    st.subheader("🧠 User Engagement")
-    col16, col17, col18 = st.columns(3)
-    with col16: custom_kpi("👤 One-time Users", f"{one_time_users/1_000_000:,.2f}M")
-    with col17: custom_kpi("👥 Returning Users", f"{returning_users/1_000_000:,.2f}M")
-    with col18: custom_kpi("📊 Avg Sessions/User", f"{avg_sessions_per_user:.2f}")
+    row5_col1, row5_col2, row5_col3 = st.columns(3)
+    with row5_col1:
+        custom_kpi("🧾 One-time Buyers", f"{one_time_buyers:,}")
+    with row5_col2:
+        custom_kpi("🔁 Returning Buyers", f"{returning_buyers:,}")
+    with row5_col3:
+        custom_kpi("📈 % Returning Buyers", f"{pct_returning_buyers:.2f}%")
 
-    col19, col20 = st.columns(2)
-    with col19: custom_kpi("↩️ % Returning Users", f"{pct_returning_users:.2f}%")
-    with col20: custom_kpi("🚪 % One-time Users", f"{pct_one_time_users:.2f}%")
+    row6_col1, row6_col2, row6_col3 = st.columns(3)
+    with row6_col1:
+        custom_kpi("📉 % One-time Buyers", f"{pct_one_time_buyers:.2f}%")
+    with row6_col2:
+        custom_kpi("📊 Avg Items/Order", f"{avg_item_per_order:.2f}")
+    with row6_col3:
+        custom_kpi("⏱️ Avg Days 1st → 2nd buy", f"{avg_gap:.2f} days")
 
-    # Refund Metrics
-    st.subheader("↩️ Refund Metrics")
-    col21, col22, col23 = st.columns(3)
-    with col21: custom_kpi("💸 Refunds", f"${Total_Refund / 1_000_000:,.2f}M")
-    with col22: custom_kpi("📦 Items Refunded", f"{Item_refunded_count:,}")
-    with col23: custom_kpi("📉 % Returned Items", f"{pct_returned_items:.2f}%")
+    # Section 3: User Behavior
+    st.divider()
+    st.markdown("### 🧠 User Behavior")
 
+    row7_col1, row7_col2, row7_col3 = st.columns(3)
+    with row7_col1:
+        custom_kpi("🧍 One-time Users", f"{one_time_users/1_000:,.2f}k")
+    with row7_col2:
+        custom_kpi("👥 Returning Users", f"{returning_users/1_000:,.2f}k")
+    with row7_col3:
+        custom_kpi("📈 Avg Sessions/User", f"{avg_sessions_per_user:.2f}")
+
+    row8_col2, row8_col3 = st.columns(2)
+    with row8_col2:
+        custom_kpi("🧠 % Returning Users", f"{pct_returning_users:.2f}%")
+    with row8_col3:
+        custom_kpi("📉 % One-time Users", f"{pct_one_time_users:.2f}%")
+
+    # Section 4: Refunds
+    st.divider()
+    st.markdown("### ↩️ Refund Metrics")
+
+    row9_col1, row9_col2, row9_col3 = st.columns(3)
+    with row9_col1:
+        custom_kpi("💸 Total Refund Amount", f"${Total_Refund / 1_000:,.2f}k")
+    with row9_col2:
+        custom_kpi("📦 Total Items Refunded", f"{Item_refunded_count:,}")
+    with row9_col3:
+        custom_kpi("📉 % Returned Items", f"{pct_returned_items:.2f}%")
 
 elif section == "Website Analytics":
     st.title("\U0001F310 Website Analytics")
@@ -591,6 +688,8 @@ def render_conversion_funnel_steps(website_pageviews):
     # Table
     st.subheader("Funnel Details")
     st.dataframe(funnel_df)
+
+
 
 
 
