@@ -118,10 +118,14 @@ import os
 import pandas as pd
 import streamlit as st
 
-# 📁 CSV FILE LOADING FROM ABSOLUTE LOCAL PATH
+# ✅ Auto-switch: Local if folder exists, else use GitHub/Render folder
+def get_data_path():
+    local_path = r"C:\Data_Clean"
+    return local_path if os.path.exists(local_path) else os.path.join(os.getcwd(), "data")
+
 def load_data():
     try:
-        data_path = r"C:\Data_Clean"  # ✅ Absolute path to your cleaned files
+        data_path = get_data_path()
 
         orders = pd.read_csv(os.path.join(data_path, "orders.csv"))
         order_items = pd.read_csv(os.path.join(data_path, "order_items.csv"))
@@ -130,11 +134,10 @@ def load_data():
         website_pageviews = pd.read_csv(os.path.join(data_path, "website_pageviews.csv"))
         website_sessions = pd.read_csv(os.path.join(data_path, "website_sessions.csv"))
 
-        st.success("✅ CSV files loaded successfully from C:\\Data_Clean")
+        st.success(f"✅ Loaded files from: {data_path}")
         return [orders, order_items, order_item_refunds, products, website_pageviews, website_sessions]
-
     except Exception as e:
-        st.error(f"❌ Failed to load CSV files from C:\\Data_Clean: {e}")
+        st.error(f"❌ Failed to load files: {e}")
         return [None]*6
 
 orders, order_items, order_item_refunds, products, website_pageviews, website_sessions = load_data()
@@ -142,6 +145,7 @@ orders, order_items, order_item_refunds, products, website_pageviews, website_se
 if any(df is None or df.empty for df in [orders, order_items, order_item_refunds, products, website_pageviews, website_sessions]):
     st.error("❌ One or more required CSV files are missing or empty.")
     st.stop()
+
 
 
 
