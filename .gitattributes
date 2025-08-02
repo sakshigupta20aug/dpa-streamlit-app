@@ -4,3 +4,4 @@
 *.sql text eol=lf
 *.json text eol=lf
 *.csv filter=lfs diff=lfs merge=lfs -text
+data/*.csv filter=lfs diff=lfs merge=lfs -text
