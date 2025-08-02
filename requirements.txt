@@ -1,5 +1,11 @@
 streamlit
 pandas
-matplotlib
 numpy
+matplotlib
 seaborn
+pyodbc
+plotly
+scikit-learn
+sqlalchemy
+openpyxl
+watchdog
