@@ -290,8 +290,12 @@ avg_gap = pivot_orders['days_between'].mean()
 section = st.session_state.get("selected_section", "Executive KPI Dashboard")
 
 if section == "Executive KPI Dashboard":
+    if not st.session_state.get("logged_in"):
+        st.warning("Please log in to access this section.")
+        st.stop()
 
-        # Section 1: Core Metrics
+    # Section 1: Core Metrics
+    st.markdown("### 🔢 Core Metrics")
     st.markdown("### 🔢 Core Metrics")
     row1_col1, row1_col2, row1_col3 = st.columns(3)
     with row1_col1:
@@ -384,7 +388,11 @@ if section == "Executive KPI Dashboard":
         custom_kpi("📉 % Returned Items", f"{pct_returned_items:.2f}%")
 
 elif section == "Website Analytics":
-    st.title("\U0001F310 Website Analytics")
+    if not st.session_state.get("logged_in"):
+        st.warning("Please log in to access this section.")
+        st.stop()
+
+    st.title("🌐 Website Analytics")
     top_pages = website_pageviews['pageview_url'].value_counts().reset_index()
     top_pages.columns = ['pageview_url', 'views']
     fig, ax = plt.subplots(figsize=(12, 5))
@@ -403,6 +411,10 @@ elif section == "Website Analytics":
     st.metric("Conversion Rate", f"{conversion_rate:.2f}%")
 
 elif section == "Product Analytics":
+    if not st.session_state.get("logged_in"):
+        st.warning("Please log in to access this section.")
+        st.stop()
+
     st.title("\U0001F4E6 Product Analytics")
 
     # ✅ Merge to get product names with order items
@@ -422,6 +434,9 @@ elif section == "Product Analytics":
 
 
 elif section == "Investor Analytics":
+    if not st.session_state.get("logged_in"):
+        st.warning("Please log in to access this section.")
+        st.stop()
     st.title("📈 Investor Analytics")
 
     # Basic metrics
@@ -457,6 +472,9 @@ elif section == "Investor Analytics":
 
 
 elif section == "Marketing Analytics":
+    if not st.session_state.get("logged_in"):
+        st.warning("Please log in to access this section.")
+        st.stop()
     st.title("\U0001F4F1 Marketing Analytics")
     campaign_perf = website_sessions.groupby(['utm_source', 'utm_campaign']).agg(
         sessions=('website_session_id', 'count')
@@ -467,6 +485,9 @@ elif section == "Marketing Analytics":
     st.dataframe(campaign_perf)
 
 elif section == "Customer Insights":
+    if not st.session_state.get("logged_in"):
+        st.warning("Please log in to access this section.")
+        st.stop()
     st.title("\U0001F465 Customer Insights")
     orders_with_items = pd.merge(order_items, orders, on='order_id')
     customer_summary = orders_with_items.groupby('user_id').agg(
@@ -482,6 +503,9 @@ elif section == "Customer Insights":
     st.dataframe(customer_summary.head())
 
 elif section == "Behavioral Segmentation":
+    if not st.session_state.get("logged_in"):
+        st.warning("Please log in to access this section.")
+        st.stop()
     st.title("\U0001F4CA Behavioral Segmentation")
     page_counts = website_pageviews.groupby('website_session_id')['pageview_url'].nunique().reset_index(name='unique_pages_viewed')
 
@@ -501,6 +525,9 @@ elif section == "Behavioral Segmentation":
     st.pyplot(fig)
 
 elif section == "Campaign Performance":
+    if not st.session_state.get("logged_in"):
+        st.warning("Please log in to access this section.")
+        st.stop()
     st.title("\U0001F4CB Campaign Performance")
     
     # Clean and prep
@@ -537,6 +564,9 @@ elif section == "Campaign Performance":
 
 
 elif section == "Cohort Analysis":
+    if not st.session_state.get("logged_in"):
+        st.warning("Please log in to access this section.")
+        st.stop()
     st.title("\U0001F5FA Cohort Analysis")
     sessions = website_sessions.copy()
     sessions['cohort_group'] = sessions.groupby('user_id')['created_at'].transform('min').dt.to_period('M')
@@ -551,6 +581,9 @@ elif section == "Cohort Analysis":
     st.pyplot(fig)
 
 elif section == "RFM Segmentation":
+    if not st.session_state.get("logged_in"):
+        st.warning("Please log in to access this section.")
+        st.stop()
     st.title("\U0001F4C9 RFM Segmentation")
     orders_merged = order_items.copy()
     orders_merged = orders_merged.merge(orders[['order_id', 'website_session_id']], on='order_id', how='left')
@@ -594,6 +627,9 @@ elif section == "RFM Segmentation":
     st.pyplot(fig)
 
 elif section == "Conversion Funnel":
+    if not st.session_state.get("logged_in"):
+        st.warning("Please log in to access this section.")
+        st.stop()
     st.title("🛒 Conversion Funnel")
 
     # Define funnel steps
@@ -627,6 +663,9 @@ elif section == "Conversion Funnel":
 
 
 elif section == "Session Funnel":
+    if not st.session_state.get("logged_in"):
+        st.warning("Please log in to access this section.")
+        st.stop()
     st.title("📊 Session Funnel")
 
     # Prepare session_times if not already defined
