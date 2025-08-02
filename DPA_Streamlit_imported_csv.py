@@ -295,7 +295,7 @@ if section == "Executive KPI Dashboard":
         st.stop()
 
     # Section 1: Core Metrics
-    st.markdown("### 🔢 Core Metrics")
+    
     st.markdown("### 🔢 Core Metrics")
     row1_col1, row1_col2, row1_col3 = st.columns(3)
     with row1_col1:
