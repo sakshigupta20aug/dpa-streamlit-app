@@ -1,7 +1,0 @@
-services:
-  - type: web
-    name: dpa-ecommerce-app
-    env: python
-    buildCommand: pip install -r requirements.txt
-    startCommand: streamlit run DPA_Streamlit_final.py
-    plan: free
