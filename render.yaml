@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: dpa-streamlit-app
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: streamlit run DPA_Streamlit_imported_csv.py
+    autoDeploy: true
